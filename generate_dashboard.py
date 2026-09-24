@@ -7,20 +7,6 @@ from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright
 import requests
 
-import os
-
-# Read from GitHub Action Secret / Environment variable
-GITHUB_USER = os.environ.get("GITHUB_USER", "YOUR_GITHUB_USERNAME")
-GITHUB_REPO = os.environ.get("GITHUB_REPO", "market-rates-dashboard")
-GITHUB_PAT = os.environ.get("MY_DISPATCH_PAT", "")  # Pulled safely from environment
-
-# ---------------------------------------------------------------------------
-# CONFIGURATION FOR GITHUB DISPATCH TRIGGER
-# ---------------------------------------------------------------------------
-GITHUB_USER = "tarunbajaj1107"  # Replace with your GitHub username
-GITHUB_REPO = "market-rates-dashboard"
-GITHUB_PAT = "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"             # Replace with your PAT
-
 # ---------------------------------------------------------------------------
 # DATA SCRAPING FUNCTIONS
 # ---------------------------------------------------------------------------
@@ -60,7 +46,6 @@ def fetch_ccil_derivatives_playwright():
 
             page.goto(url, wait_until='networkidle', timeout=45000)
 
-            # Handle popup disclaimers if present
             accept_selectors = [
                 "button:has-text('Accept')",
                 "button:has-text('I Agree')",
@@ -80,8 +65,6 @@ def fetch_ccil_derivatives_playwright():
             page.wait_for_selector('table', timeout=20000)
             tables = page.locator('table').all()
 
-            print(f'=== [DEBUG] Total tables found: {len(tables)} ===')
-
             for t_idx, table in enumerate(tables):
                 parent_text = (
                     table.locator('xpath=./ancestor::div[contains(@class, "section")]')
@@ -100,11 +83,6 @@ def fetch_ccil_derivatives_playwright():
                     or 'MMIFOR' in full_context_text
                     or 'MMFOR' in full_context_text
                     or t_idx >= 2
-                )
-
-                print(
-                    f'\n--- [DEBUG] Table #{t_idx+1} | Detected MMIFOR Context:'
-                    f' {is_mifor} ---'
                 )
 
                 rows = table.locator('tr').all()
@@ -127,15 +105,6 @@ def fetch_ccil_derivatives_playwright():
                         if match:
                             valid_rates.append(match.group(0))
 
-                    if any(t in clean_tenor for t in ['2Y', '2YEAR', '3Y', '3YEAR']):
-                        print(
-                            f'  👉 [MMIFOR TARGET ROW FOUND] Table #{t_idx+1} Row #{r_idx+1}:'
-                        )
-                        print(f'     Raw Cells: {cells}')
-                        print(f'     Clean Tenor: "{clean_tenor}"')
-                        print(f'     Detected Rates: {valid_rates}')
-                        print(f'     Is MIFOR Context Flag: {is_mifor}')
-
                     if not valid_rates:
                         continue
 
@@ -144,48 +113,24 @@ def fetch_ccil_derivatives_playwright():
                     except ValueError:
                         continue
 
-                    mapped = False
                     if not is_mifor:
                         if clean_tenor in ['1M', 'ON', 'O/N', 'OVERNIGHT']:
                             rates['MIOIS 1 Month'] = formatted_rate
-                            mapped = True
                         elif clean_tenor in ['3M', '3MONTH']:
                             rates['MIOIS 3 Month'] = formatted_rate
-                            mapped = True
                         elif clean_tenor in ['6M', '6MONTH']:
                             rates['MIOIS 6 Month'] = formatted_rate
-                            mapped = True
                         elif clean_tenor in ['1Y', '12M', '1YEAR']:
                             rates['MIOIS 1 Year'] = formatted_rate
-                            mapped = True
                     else:
                         if clean_tenor in ['2Y', '2YEAR']:
                             rates['MMIFOR 2 Year'] = formatted_rate
-                            mapped = True
-                            print(
-                                f'  ✅ [SUCCESS] Successfully mapped MMIFOR 2 Year ->'
-                                f' {formatted_rate}'
-                            )
                         elif clean_tenor in ['3Y', '3YEAR']:
                             rates['MMIFOR 3 Year'] = formatted_rate
-                            mapped = True
-                            print(
-                                f'  ✅ [SUCCESS] Successfully mapped MMIFOR 3 Year ->'
-                                f' {formatted_rate}'
-                            )
-
-                    if (
-                        any(t in clean_tenor for t in ['2Y', '2YEAR', '3Y', '3YEAR'])
-                        and not mapped
-                    ):
-                        print(
-                            f'  ❌ [MAPPING FAILED] Found target tenor ({clean_tenor}), but'
-                            f' mapped=False. (is_mifor={is_mifor})'
-                        )
 
             browser.close()
     except Exception as e:
-        print(f'!!! [DEBUG EXCEPTION] CCIL Swaps failed: {e} !!!')
+        print(f'!!! CCIL Swaps failed: {e} !!!')
 
     return rates
 
@@ -223,7 +168,6 @@ def fetch_ccil_tenorwise_yields():
 
             page.goto(url, wait_until='networkidle', timeout=45000)
 
-            # Handle popup disclaimers if present
             accept_selectors = [
                 "button:has-text('Accept')",
                 "button:has-text('I Agree')",
@@ -275,7 +219,7 @@ def fetch_ccil_tenorwise_yields():
 
             browser.close()
     except Exception as e:
-        print(f'!!! [DEBUG EXCEPTION] CCIL Tenorwise Yields failed: {e} !!!')
+        print(f'!!! CCIL Tenorwise Yields failed: {e} !!!')
 
     return yields
 
@@ -390,19 +334,54 @@ def fetch_market_commodities_fx():
 
     return data
 
+
+# Helper to parse string values to floats safely for chart rendering
+def parse_val(v):
+    if not v or v == 'N/A':
+        return 'null'
+    clean = re.sub(r'[^0-9.]', '', str(v))
+    return clean if clean else 'null'
+
+
 # ---------------------------------------------------------------------------
-# HTML GENERATOR FUNCTION WITH ADVANCED PAT LOGGING
+# HTML GENERATOR FUNCTION WITH VISUAL CHARTS
 # ---------------------------------------------------------------------------
 
 def generate_html_dashboard():
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S UTC")
 
-    print("Fetching live market rates via provided script functions...")
+    print("Fetching live market rates...")
     ccil_rates = fetch_ccil_derivatives_playwright()
     ccil_yields = fetch_ccil_tenorwise_yields()
     sofr = fetch_sofr()
     treasuries = fetch_us_treasuries()
     macro_data = fetch_market_commodities_fx()
+
+    # Dynamic Array Preparation for Charts
+    inr_yield_vals = [
+        parse_val(ccil_yields.get('INR 3M T-Bill')),
+        parse_val(ccil_yields.get('INR 6M T-Bill')),
+        parse_val(ccil_yields.get('INR 2Y G-Sec')),
+        parse_val(ccil_yields.get('INR 5Y G-Sec')),
+        parse_val(ccil_yields.get('INR 10Y G-Sec'))
+    ]
+
+    us_yield_vals = [
+        parse_val(treasuries.get('US T-Bill 3M')),
+        parse_val(treasuries.get('US T-Bill 6M')),
+        parse_val(treasuries.get('US 2Y Bond Yield')),
+        parse_val(treasuries.get('US 5Y Bond Yield')),
+        parse_val(treasuries.get('US 10Y Bond Yield'))
+    ]
+
+    inr_swap_vals = [
+        parse_val(ccil_rates.get('MIOIS 1 Month')),
+        parse_val(ccil_rates.get('MIOIS 3 Month')),
+        parse_val(ccil_rates.get('MIOIS 6 Month')),
+        parse_val(ccil_rates.get('MIOIS 1 Year')),
+        parse_val(ccil_rates.get('MMIFOR 2 Year')),
+        parse_val(ccil_rates.get('MMIFOR 3 Year'))
+    ]
 
     html_content = f"""<!DOCTYPE html>
 <html lang="en">
@@ -410,6 +389,8 @@ def generate_html_dashboard():
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Global & Domestic Market Rates Dashboard</title>
+    <!-- Include Chart.js via CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {{
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -448,14 +429,18 @@ def generate_html_dashboard():
             cursor: pointer;
             font-weight: 600;
             font-size: 14px;
+            text-decoration: none;
+            display: inline-block;
             transition: background-color 0.2s;
         }}
         .refresh-btn:hover {{
             background-color: #0052a3;
         }}
-        .refresh-btn:disabled {{
-            background-color: #a0c4e8;
-            cursor: not-allowed;
+        .charts-section {{
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+            gap: 20px;
+            margin-bottom: 25px;
         }}
         .grid {{
             display: grid;
@@ -476,6 +461,11 @@ def generate_html_dashboard():
             padding-bottom: 8px;
             color: #2c3e50;
         }}
+        .chart-container {{
+            position: relative;
+            height: 250px;
+            width: 100%;
+        }}
         table {{
             width: 100%;
             border-collapse: collapse;
@@ -494,12 +484,6 @@ def generate_html_dashboard():
         td:last-child, th:last-child {{
             text-align: right;
         }}
-        .status-msg {{
-            font-size: 13px;
-            color: #28a745;
-            margin-top: 5px;
-            display: block;
-        }}
     </style>
 </head>
 <body>
@@ -510,12 +494,32 @@ def generate_html_dashboard():
             <h1>Global & Domestic Market Rates Dashboard</h1>
             <div class="timestamp">Last Updated: {timestamp}</div>
         </div>
-        <div style="text-align: right;">
-            <button id="refreshBtn" class="refresh-btn" onclick="triggerScraper()">🔄 Refresh Live Rates</button>
-            <span id="statusMsg" class="status-msg"></span>
+        <div>
+            <a href="https://github.com/tarunbajaj1107/market-rates-dashboard/actions/workflows/update_dashboard.yml" 
+               target="_blank" 
+               class="refresh-btn">
+               🔄 Trigger Scraper on GitHub
+            </a>
         </div>
     </div>
 
+    <!-- CHARTS SECTION -->
+    <div class="charts-section">
+        <div class="card">
+            <h2>📈 Sovereign Yield Curves Comparison (%)</h2>
+            <div class="chart-container">
+                <canvas id="yieldCurveChart"></canvas>
+            </div>
+        </div>
+        <div class="card">
+            <h2>📊 INR Swap Rates Overview (%)</h2>
+            <div class="chart-container">
+                <canvas id="swapChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- DATA TABLES SECTION -->
     <div class="grid">
         <!-- INR Benchmarks & Swaps (CCIL) -->
         <div class="card">
@@ -557,84 +561,70 @@ def generate_html_dashboard():
 </div>
 
 <script>
-async function triggerScraper() {{
-    const btn = document.getElementById('refreshBtn');
-    const msg = document.getElementById('statusMsg');
-    
-    const GITHUB_USER = '{GITHUB_USER}';
-    const GITHUB_REPO = '{GITHUB_REPO}';
-    const GITHUB_PAT = '{GITHUB_PAT}';
-
-    console.log('=== [GITHUB API DEBUG LOGS] ===');
-    console.log(`Target Repo: ${{GITHUB_USER}}/${{GITHUB_REPO}}`);
-    console.log(`PAT Length: ${{GITHUB_PAT ? GITHUB_PAT.length : 0}} chars`);
-    console.log(`PAT Prefix: ${{GITHUB_PAT ? GITHUB_PAT.substring(0, 10) + '...' : 'NONE'}}`);
-
-    btn.disabled = true;
-    msg.style.color = '#0066cc';
-    msg.innerText = 'Triggering Python scraper...';
-
-    if (!GITHUB_PAT || GITHUB_PAT.includes('YOUR_') || GITHUB_PAT.length < 20) {{
-        console.error('[PAT LOG ERROR] GITHUB_PAT appears invalid, placeholder, or truncated.');
-        msg.style.color = '#dc3545';
-        msg.innerText = 'Error: Invalid PAT configured in script.';
-        btn.disabled = false;
-        return;
-    }}
-
-    const targetUrl = `https://api.github.com/repos/${{GITHUB_USER}}/${{GITHUB_REPO}}/dispatches`;
-
-    try {{
-        const response = await fetch(targetUrl, {{
-            method: 'POST',
-            headers: {{
-                'Accept': 'application/vnd.github+json',
-                'Authorization': `Bearer ${{GITHUB_PAT}}`,
-                'Content-Type': 'application/json'
-            }},
-            body: JSON.stringify({{ event_type: 'run_scraper' }})
-        }});
-
-        console.log(`Response Status: ${{response.status}} ${{response.statusText}}`);
-
-        let responseBody = {{}};
-        try {{
-            responseBody = await response.json();
-            console.log('Response Details:', responseBody);
-        }} catch(e) {{
-            console.log('No JSON response body returned (Normal for HTTP 204).');
-        }}
-
-        if (response.ok || response.status === 204) {{
-            console.log('✅ Dispatch event created successfully!');
-            msg.style.color = '#28a745';
-            msg.innerText = 'Scraper started! Reloading dashboard in 90 seconds...';
-            setTimeout(() => {{
-                window.location.reload();
-            }}, 90000); 
-        }} else {{
-            const errorReason = responseBody.message || 'Check browser console for full headers.';
-            console.error(`❌ GitHub API Error [HTTP ${{response.status}}] - ${{errorReason}}`);
-            
-            if (response.status === 401) {{
-                console.error('💡 Hint: 401 Unauthorized means the token is invalid, expired, or auto-revoked by GitHub because it was committed in a public repository.');
-            }} else if (response.status === 403) {{
-                console.error('💡 Hint: 403 Forbidden means the PAT lacks required permissions. Ensure "Contents" or "Actions" write permissions are granted.');
-            }} else if (response.status === 404) {{
-                console.error('💡 Hint: 404 Not Found means either the owner/repo string is incorrect OR the fine-grained PAT does not have explicit access selected for this repo.');
+    // Yield Curve Chart
+    const ctxYield = document.getElementById('yieldCurveChart').getContext('2d');
+    new Chart(ctxYield, {{
+        type: 'line',
+        data: {{
+            labels: ['3M', '6M', '2Y', '5Y', '10Y'],
+            datasets: [
+                {{
+                    label: 'INR Sovereign Yields',
+                    data: [{", ".join(inr_yield_vals)}],
+                    borderColor: '#ff9933',
+                    backgroundColor: 'rgba(255, 153, 51, 0.1)',
+                    tension: 0.3,
+                    fill: true
+                }},
+                {{
+                    label: 'US Treasury Yields',
+                    data: [{", ".join(us_yield_vals)}],
+                    borderColor: '#003366',
+                    backgroundColor: 'rgba(0, 51, 102, 0.1)',
+                    tension: 0.3,
+                    fill: true
+                }}
+            ]
+        }},
+        options: {{
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {{
+                y: {{
+                    ticks: {{ callback: value => value + '%' }}
+                }}
             }}
-
-            msg.style.color = '#dc3545';
-            msg.innerText = `Error (${{response.status}}): ${{errorReason}}`;
-            btn.disabled = false;
         }}
-    }} catch (err) {{
-        console.error('❌ Network or Fetch Error:', err);
-        msg.style.color = '#dc3545';
-        msg.innerText = 'Network error connecting to GitHub API.';
-        btn.disabled = false;
-    }}
-}}
+    }});
+
+    // Swap Rates Bar Chart
+    const ctxSwap = document.getElementById('swapChart').getContext('2d');
+    new Chart(ctxSwap, {{
+        type: 'bar',
+        data: {{
+            labels: ['MIOIS 1M', 'MIOIS 3M', 'MIOIS 6M', 'MIOIS 1Y', 'MMIFOR 2Y', 'MMIFOR 3Y'],
+            datasets: [{{
+                label: 'Swap Rate (%)',
+                data: [{", ".join(inr_swap_vals)}],
+                backgroundColor: [
+                    '#28a745', '#28a745', '#28a745', '#28a745',
+                    '#17a2b8', '#17a2b8'
+                ]
+            }}]
+        }},
+        options: {{
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {{
+                legend: {{ display: false }}
+            }},
+            scales: {{
+                y: {{
+                    ticks: {{ callback: value => value + '%' }}
+                }}
+            }}
+        }}
+    }});
 </script>
 
 </body>
@@ -644,7 +634,7 @@ async function triggerScraper() {{
     with open("index.html", "w", encoding="utf-8") as f:
         f.write(html_content)
 
-    print("Dashboard index.html generated successfully!")
+    print("Dashboard index.html with visual charts generated successfully!")
 
 
 if __name__ == "__main__":
