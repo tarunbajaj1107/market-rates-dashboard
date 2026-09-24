@@ -7,6 +7,13 @@ from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright
 import requests
 
+import os
+
+# Read from GitHub Action Secret / Environment variable
+GITHUB_USER = os.environ.get("GITHUB_USER", "YOUR_GITHUB_USERNAME")
+GITHUB_REPO = os.environ.get("GITHUB_REPO", "market-rates-dashboard")
+GITHUB_PAT = os.environ.get("MY_DISPATCH_PAT", "")  # Pulled safely from environment
+
 # ---------------------------------------------------------------------------
 # CONFIGURATION FOR GITHUB DISPATCH TRIGGER
 # ---------------------------------------------------------------------------
