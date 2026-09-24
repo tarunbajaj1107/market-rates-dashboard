@@ -4,14 +4,16 @@ on:
   schedule:
     # Runs automatically every day at 00:00 UTC (5:30 AM IST)
     - cron: '0 0 * * *'
-  workflow_dispatch: # Allows you to manually trigger the workflow from GitHub UI anytime
+  workflow_dispatch: # Allows manual trigger from GitHub Actions tab
+  repository_dispatch:
+    types: [run_scraper] # Allows external trigger via API / dashboard button
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
 
     permissions:
-      contents: write # Needed to commit and push index.html back to main branch
+      contents: write # Permits pushing updated index.html back to main branch
 
     steps:
       - name: Checkout Repository
