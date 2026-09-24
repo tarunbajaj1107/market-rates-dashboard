@@ -7,79 +7,84 @@ from playwright.sync_api import sync_playwright
 
 # ---------------------------------------------------------------------------
 # CONFIGURATION FOR GITHUB DISPATCH TRIGGER
-# Replace these values with your actual GitHub username and Personal Access Token
 # ---------------------------------------------------------------------------
-GITHUB_USER = "tarunbajaj1107"
+GITHUB_USER = "YOUR_ACTUAL_GITHUB_USERNAME"  # Replace with your GitHub username
 GITHUB_REPO = "market-rates-dashboard"
-GITHUB_PAT = "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"
+GITHUB_PAT = "github_pat_11A..."             # Replace with your PAT
 
 # ---------------------------------------------------------------------------
 # DATA SCRAPING FUNCTIONS
 # ---------------------------------------------------------------------------
 
-
 def fetch_ccil_rates():
-    """Scrapes MIBOR, MIOIS, and TREPS rates from CCIL using Playwright."""
+    """Scrapes MIBOR, MIOIS, and TREPS rates from CCIL using Playwright with increased timeouts."""
     data = {"mibor": [], "miois": [], "treps": []}
+    
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
+        # Launch browser with custom args to prevent stalling
+        browser = p.chromium.launch(
+            headless=True,
+            args=["--disable-dev-shm-usage", "--no-sandbox"]
+        )
         page = browser.new_page()
 
         # Fetch MIBOR
         try:
-            page.goto("https://www.ccilindia.com/web/ccil/mibor", timeout=30000)
-            page.wait_for_selector("table", timeout=10000)
+            print("  Fetching MIBOR...")
+            page.goto("https://www.ccilindia.com/web/ccil/mibor", timeout=45000, wait_until="domcontentloaded")
+            page.wait_for_selector("table", timeout=30000)
             soup = BeautifulSoup(page.content(), "html.parser")
             for row in soup.select("table tr"):
                 cols = [c.get_text(strip=True) for c in row.find_all(["td", "th"])]
-                if len(cols) >= 2 and any(
-                    term in cols[0] for term in ["Overnight", "14-Day", "1-Month"]
-                ):
-                    data["mibor"].append(
-                        {"tenor": cols[0], "rate": cols[1], "change": cols[-1]}
-                    )
+                if len(cols) >= 2 and any(term in cols[0] for term in ["Overnight", "14-Day", "1-Month"]):
+                    data["mibor"].append({"tenor": cols[0], "rate": cols[1], "change": cols[-1]})
         except Exception as e:
-            print(f"Error fetching MIBOR: {e}")
+            print(f"  Error fetching MIBOR: {e}")
 
         # Fetch MIOIS
         try:
-            page.goto("https://www.ccilindia.com/web/ccil/miois", timeout=30000)
-            page.wait_for_selector("table", timeout=10000)
+            print("  Fetching MIOIS...")
+            page.goto("https://www.ccilindia.com/web/ccil/miois", timeout=45000, wait_until="domcontentloaded")
+            page.wait_for_selector("table", timeout=30000)
             soup = BeautifulSoup(page.content(), "html.parser")
             for row in soup.select("table tr"):
                 cols = [c.get_text(strip=True) for c in row.find_all(["td", "th"])]
-                if len(cols) >= 2 and any(
-                    term in cols[0]
-                    for term in ["1-Month", "3-Month", "6-Month", "1-Year"]
-                ):
+                if len(cols) >= 2 and any(term in cols[0] for term in ["1-Month", "3-Month", "6-Month", "1-Year"]):
                     data["miois"].append({"tenor": cols[0], "rate": cols[1]})
         except Exception as e:
-            print(f"Error fetching MIOIS: {e}")
+            print(f"  Error fetching MIOIS: {e}")
 
         # Fetch TREPS
         try:
-            page.goto("https://www.ccilindia.com/web/ccil/treps", timeout=30000)
-            page.wait_for_selector("table", timeout=10000)
+            print("  Fetching TREPS...")
+            page.goto("https://www.ccilindia.com/web/ccil/treps", timeout=45000, wait_until="domcontentloaded")
+            page.wait_for_selector("table", timeout=30000)
             soup = BeautifulSoup(page.content(), "html.parser")
             for row in soup.select("table tr"):
                 cols = [c.get_text(strip=True) for c in row.find_all(["td", "th"])]
                 if len(cols) >= 2 and "Overnight" in cols[0]:
                     data["treps"].append({"tenor": cols[0], "rate": cols[1]})
         except Exception as e:
-            print(f"Error fetching TREPS: {e}")
+            print(f"  Error fetching TREPS: {e}")
 
         browser.close()
     return data
 
 
 def fetch_us_treasury_yields():
-    """Fetches latest US Treasury Yield Curve data from US Treasury XML Feed."""
+    """Fetches latest US Treasury Yield Curve data with browser headers and extended timeouts."""
     yields = []
     current_year = datetime.now().year
     url = f"https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml?data=daily_treasury_yield_curve&field_tdr_date_value={current_year}"
 
+    # Headers mimic a real desktop browser to bypass US Treasury anti-bot filters
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+        "Accept": "application/xml, text/xml, */*"
+    }
+
     try:
-        resp = requests.get(url, timeout=15)
+        resp = requests.get(url, headers=headers, timeout=30)
         if resp.status_code == 200:
             root = ET.fromstring(resp.content)
             namespaces = {
@@ -90,14 +95,8 @@ def fetch_us_treasury_yields():
             entries = root.findall("atom:entry", namespaces)
             if entries:
                 last_entry = entries[-1]
-                properties = last_entry.find(
-                    "atom:content/m:properties", namespaces
-                )
-                date_str = (
-                    properties.find("d:NEW_DATE", namespaces).text.split("T")[0]
-                    if properties.find("d:NEW_DATE", namespaces) is not None
-                    else ""
-                )
+                properties = last_entry.find("atom:content/m:properties", namespaces)
+                date_str = properties.find("d:NEW_DATE", namespaces).text.split("T")[0] if properties.find("d:NEW_DATE", namespaces) is not None else ""
 
                 tenors = [
                     ("1 Month", "d:BC_1MONTH"),
@@ -112,16 +111,10 @@ def fetch_us_treasury_yields():
 
                 for name, tag in tenors:
                     val_elem = properties.find(tag, namespaces)
-                    val = (
-                        val_elem.text
-                        if val_elem is not None and val_elem.text
-                        else "N/A"
-                    )
-                    yields.append(
-                        {"tenor": name, "rate": f"{val}%", "date": date_str}
-                    )
+                    val = val_elem.text if val_elem is not None and val_elem.text else "N/A"
+                    yields.append({"tenor": name, "rate": f"{val}%", "date": date_str})
     except Exception as e:
-        print(f"Error fetching US Treasury Yields: {e}")
+        print(f"  Error fetching US Treasury Yields: {e}")
 
     return yields
 
@@ -129,34 +122,32 @@ def fetch_us_treasury_yields():
 def fetch_sofr_rates():
     """Fetches SOFR rate via New York Fed Public API."""
     sofr_data = []
+    headers = {"User-Agent": "Mozilla/5.0"}
     try:
         url = "https://markets.newyorkfed.org/api/rates/secured/sofr/last/1.json"
-        resp = requests.get(url, timeout=10)
+        resp = requests.get(url, headers=headers, timeout=20)
         if resp.status_code == 200:
             data = resp.json()
             ref_rate = data.get("refRates", [{}])[0]
             rate = ref_rate.get("percentRate", "N/A")
             date = ref_rate.get("effectiveDate", "N/A")
-            sofr_data.append(
-                {"tenor": "SOFR (Overnight)", "rate": f"{rate}%", "date": date}
-            )
+            sofr_data.append({"tenor": "SOFR (Overnight)", "rate": f"{rate}%", "date": date})
     except Exception as e:
-        print(f"Error fetching SOFR: {e}")
+        print(f"  Error fetching SOFR: {e}")
     return sofr_data
 
 
 def fetch_fx_and_commodities():
-    """Fetches FX (USD/INR) and Commodity Rates (Gold, Oil)."""
+    """Fetches FX (USD/INR) and Commodity Rates."""
     items = []
+    headers = {"User-Agent": "Mozilla/5.0"}
     try:
-        resp = requests.get(
-            "https://api.exchangerate-api.com/v4/latest/USD", timeout=10
-        )
+        resp = requests.get("https://api.exchangerate-api.com/v4/latest/USD", headers=headers, timeout=20)
         if resp.status_code == 200:
             inr = resp.json().get("rates", {}).get("INR", "N/A")
             items.append({"name": "USD / INR", "value": f"₹{inr}"})
     except Exception as e:
-        print(f"Error fetching USD/INR: {e}")
+        print(f"  Error fetching USD/INR: {e}")
 
     items.append({"name": "Brent Crude Oil", "value": "Refer Exchange Feed"})
     items.append({"name": "Gold (XAU/USD)", "value": "Refer Exchange Feed"})
@@ -167,7 +158,6 @@ def fetch_fx_and_commodities():
 # ---------------------------------------------------------------------------
 # HTML GENERATOR FUNCTION
 # ---------------------------------------------------------------------------
-
 
 def generate_html_dashboard():
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S UTC")
