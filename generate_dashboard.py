@@ -9,9 +9,9 @@ from playwright.sync_api import sync_playwright
 # CONFIGURATION FOR GITHUB DISPATCH TRIGGER
 # Replace these values with your actual GitHub username and Personal Access Token
 # ---------------------------------------------------------------------------
-GITHUB_USER = "YOUR_GITHUB_USERNAME_HERE"
+GITHUB_USER = "tarunbajaj1107"
 GITHUB_REPO = "market-rates-dashboard"
-GITHUB_PAT = "YOUR_FINE_GRAINED_PAT_TOKEN_HERE"
+GITHUB_PAT = "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"
 
 # ---------------------------------------------------------------------------
 # DATA SCRAPING FUNCTIONS
