@@ -92,7 +92,7 @@
             font-size: 13px;
             color: #28a745;
             margin-top: 5px;
-            display: inline-block;
+            display: block;
         }
     </style>
 </head>
@@ -102,59 +102,49 @@
     <div class="header">
         <div>
             <h1>Global & Domestic Market Rates Dashboard</h1>
-            <div class="timestamp">Last Updated: 2026-09-24 18:09:54 UTC</div>
+            <div class="timestamp">Last Updated: 2026-09-24 18:26:11 UTC</div>
         </div>
-        <div>
+        <div style="text-align: right;">
             <button id="refreshBtn" class="refresh-btn" onclick="triggerScraper()">🔄 Refresh Live Rates</button>
-            <br>
             <span id="statusMsg" class="status-msg"></span>
         </div>
     </div>
 
     <div class="grid">
-        <!-- CCIL MIBOR -->
+        <!-- INR Benchmarks & Swaps (CCIL) -->
         <div class="card">
-            <h2>India - CCIL MIBOR</h2>
-            <table>
-                <tr><th>Tenor</th><th>Rate</th></tr>
-                <tr><td colspan='2'>No data available</td></tr>
-            </table>
-        </div>
-
-        <!-- CCIL MIOIS & TREPS -->
-        <div class="card">
-            <h2>India - MIOIS & TREPS</h2>
+            <h2>🇮🇳 INR Benchmarks & Swaps (CCIL)</h2>
             <table>
                 <tr><th>Instrument</th><th>Rate</th></tr>
-                
-                
+                <tr><td>MIOIS 1 Month</td><td>5.42%</td></tr><tr><td>MIOIS 3 Month</td><td>5.53%</td></tr><tr><td>MIOIS 6 Month</td><td>5.73%</td></tr><tr><td>MIOIS 1 Year</td><td>6.10%</td></tr><tr><td>MMIFOR 2 Year</td><td>7.70%</td></tr><tr><td>MMIFOR 3 Year</td><td>7.72%</td></tr>
             </table>
         </div>
 
-        <!-- US Treasury Yield Curve -->
+        <!-- INR Government Securities & T-Bills (CCIL) -->
         <div class="card">
-            <h2>US Treasury Yields</h2>
+            <h2>🇮🇳 INR Government Securities & T-Bills</h2>
+            <table>
+                <tr><th>Tenor / Security</th><th>Yield</th></tr>
+                <tr><td>INR 3M T-Bill</td><td>5.39%</td></tr><tr><td>INR 6M T-Bill</td><td>5.82%</td></tr><tr><td>INR 2Y G-Sec</td><td>6.28%</td></tr><tr><td>INR 5Y G-Sec</td><td>6.80%</td></tr><tr><td>INR 10Y G-Sec</td><td>7.10%</td></tr>
+            </table>
+        </div>
+
+        <!-- US Benchmarks & Yields -->
+        <div class="card">
+            <h2>🇺🇸 US Benchmarks & Yields</h2>
             <table>
                 <tr><th>Tenor</th><th>Yield</th></tr>
-                <tr><td>1 Month</td><td>3.99%</td></tr><tr><td>3 Month</td><td>4.19%</td></tr><tr><td>6 Month</td><td>4.31%</td></tr><tr><td>1 Year</td><td>4.49%</td></tr><tr><td>2 Year</td><td>4.85%</td></tr><tr><td>5 Year</td><td>4.99%</td></tr><tr><td>10 Year</td><td>5.11%</td></tr><tr><td>30 Year</td><td>5.40%</td></tr>
+                <tr><td>SOFR Rate</td><td>3.87%</td></tr>
+                <tr><td>US T-Bill 3M</td><td>4.19%</td></tr><tr><td>US T-Bill 6M</td><td>4.31%</td></tr><tr><td>US T-Bill 1Y</td><td>4.49%</td></tr><tr><td>US 2Y Bond Yield</td><td>4.85%</td></tr><tr><td>US 5Y Bond Yield</td><td>4.99%</td></tr><tr><td>US 10Y Bond Yield</td><td>5.11%</td></tr>
             </table>
         </div>
 
-        <!-- SOFR & Global Rates -->
+        <!-- FX & Global Commodities -->
         <div class="card">
-            <h2>US SOFR</h2>
-            <table>
-                <tr><th>Rate Type</th><th>Value</th></tr>
-                <tr><td>SOFR (Overnight)</td><td>3.87%</td></tr>
-            </table>
-        </div>
-
-        <!-- FX & Commodities -->
-        <div class="card">
-            <h2>FX & Key Indicators</h2>
+            <h2>🌐 FX & Global Commodities</h2>
             <table>
                 <tr><th>Indicator</th><th>Rate</th></tr>
-                <tr><td>USD / INR</td><td>₹95.81</td></tr><tr><td>Brent Crude Oil</td><td>Refer Exchange Feed</td></tr><tr><td>Gold (XAU/USD)</td><td>Refer Exchange Feed</td></tr>
+                <tr><td>USD / INR Spot</td><td>₹95.81</td></tr><tr><td>Crude Oil (Brent)</td><td>$106.21 / bbl</td></tr><tr><td>Gold Rate (24K / 10g)</td><td>₹132,665</td></tr>
             </table>
         </div>
     </div>
@@ -165,16 +155,31 @@ async function triggerScraper() {
     const btn = document.getElementById('refreshBtn');
     const msg = document.getElementById('statusMsg');
     
-    const GITHUB_USER = 'YOUR_ACTUAL_GITHUB_USERNAME';
+    const GITHUB_USER = 'tarunbajaj1107';
     const GITHUB_REPO = 'market-rates-dashboard';
-    const GITHUB_PAT = 'github_pat_11A...'; 
+    const GITHUB_PAT = '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';
+
+    console.log('=== [GITHUB API DEBUG LOGS] ===');
+    console.log(`Target Repo: ${GITHUB_USER}/${GITHUB_REPO}`);
+    console.log(`PAT Length: ${GITHUB_PAT ? GITHUB_PAT.length : 0} chars`);
+    console.log(`PAT Prefix: ${GITHUB_PAT ? GITHUB_PAT.substring(0, 10) + '...' : 'NONE'}`);
 
     btn.disabled = true;
     msg.style.color = '#0066cc';
     msg.innerText = 'Triggering Python scraper...';
 
+    if (!GITHUB_PAT || GITHUB_PAT.includes('YOUR_') || GITHUB_PAT.length < 20) {
+        console.error('[PAT LOG ERROR] GITHUB_PAT appears invalid, placeholder, or truncated.');
+        msg.style.color = '#dc3545';
+        msg.innerText = 'Error: Invalid PAT configured in script.';
+        btn.disabled = false;
+        return;
+    }
+
+    const targetUrl = `https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/dispatches`;
+
     try {
-        const response = await fetch(`https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/dispatches`, {
+        const response = await fetch(targetUrl, {
             method: 'POST',
             headers: {
                 'Accept': 'application/vnd.github+json',
@@ -184,20 +189,43 @@ async function triggerScraper() {
             body: JSON.stringify({ event_type: 'run_scraper' })
         });
 
+        console.log(`Response Status: ${response.status} ${response.statusText}`);
+
+        let responseBody = {};
+        try {
+            responseBody = await response.json();
+            console.log('Response Details:', responseBody);
+        } catch(e) {
+            console.log('No JSON response body returned (Normal for HTTP 204).');
+        }
+
         if (response.ok || response.status === 204) {
+            console.log('✅ Dispatch event created successfully!');
             msg.style.color = '#28a745';
             msg.innerText = 'Scraper started! Reloading dashboard in 90 seconds...';
             setTimeout(() => {
                 window.location.reload();
             }, 90000); 
         } else {
+            const errorReason = responseBody.message || 'Check browser console for full headers.';
+            console.error(`❌ GitHub API Error [HTTP ${response.status}] - ${errorReason}`);
+            
+            if (response.status === 401) {
+                console.error('💡 Hint: 401 Unauthorized means the token is invalid, expired, or auto-revoked by GitHub because it was committed in a public repository.');
+            } else if (response.status === 403) {
+                console.error('💡 Hint: 403 Forbidden means the PAT lacks required permissions. Ensure "Contents" or "Actions" write permissions are granted.');
+            } else if (response.status === 404) {
+                console.error('💡 Hint: 404 Not Found means either the owner/repo string is incorrect OR the fine-grained PAT does not have explicit access selected for this repo.');
+            }
+
             msg.style.color = '#dc3545';
-            msg.innerText = 'Failed to trigger scraper. Check token permissions.';
+            msg.innerText = `Error (${response.status}): ${errorReason}`;
             btn.disabled = false;
         }
     } catch (err) {
+        console.error('❌ Network or Fetch Error:', err);
         msg.style.color = '#dc3545';
-        msg.innerText = 'Error connecting to API server.';
+        msg.innerText = 'Network error connecting to GitHub API.';
         btn.disabled = false;
     }
 }
