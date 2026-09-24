@@ -379,7 +379,7 @@ def generate_html_dashboard():
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sovereign Yield Intelligence - Executive Dashboard</title>
+    <title>Sovereign Yields  -  Dashboard</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -439,9 +439,9 @@ def generate_html_dashboard():
             </div>
             <div>
                 <h1 class="text-2xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-200 to-slate-400">
-                    Sovereign Yield Intelligence
+                    Sovereign Yields 
                 </h1>
-                <p class="text-xs text-slate-400 font-medium">Executive Macro Interest Rate & Spread Analysis Dashboard</p>
+                <p class="text-xs text-slate-400 font-medium"> Interest Rate & Spreads Dashboard</p>
             </div>
         </div>
 
