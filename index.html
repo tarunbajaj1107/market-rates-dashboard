@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Global & Domestic Market Rates Dashboard</title>
-    <!-- Include Chart.js via CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- ApexCharts CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -53,7 +53,7 @@
         }
         .charts-section {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(480px, 1fr));
             gap: 20px;
             margin-bottom: 25px;
         }
@@ -76,10 +76,8 @@
             padding-bottom: 8px;
             color: #2c3e50;
         }
-        .chart-container {
-            position: relative;
-            height: 250px;
-            width: 100%;
+        .chart-box {
+            min-height: 280px;
         }
         table {
             width: 100%;
@@ -107,7 +105,7 @@
     <div class="header">
         <div>
             <h1>Global & Domestic Market Rates Dashboard</h1>
-            <div class="timestamp">Last Updated: 2026-09-24 19:14:04 UTC</div>
+            <div class="timestamp">Last Updated: 2026-09-24 19:20:41 UTC</div>
         </div>
         <div>
             <a href="https://github.com/tarunbajaj1107/market-rates-dashboard/actions/workflows/update_dashboard.yml" 
@@ -118,19 +116,15 @@
         </div>
     </div>
 
-    <!-- CHARTS SECTION -->
+    <!-- FANCY APEXCHARTS SECTION -->
     <div class="charts-section">
         <div class="card">
-            <h2>📈 Sovereign Yield Curves Comparison (%)</h2>
-            <div class="chart-container">
-                <canvas id="yieldCurveChart"></canvas>
-            </div>
+            <h2>📈 Sovereign Yield Curves Comparison</h2>
+            <div id="yieldCurveChart" class="chart-box"></div>
         </div>
         <div class="card">
-            <h2>📊 INR Swap Rates Overview (%)</h2>
-            <div class="chart-container">
-                <canvas id="swapChart"></canvas>
-            </div>
+            <h2>📊 INR Swap Rates Overview</h2>
+            <div id="swapChart" class="chart-box"></div>
         </div>
     </div>
 
@@ -169,77 +163,99 @@
             <h2>🌐 FX & Global Commodities</h2>
             <table>
                 <tr><th>Indicator</th><th>Rate</th></tr>
-                <tr><td>USD / INR Spot</td><td>₹95.81</td></tr><tr><td>Crude Oil (Brent)</td><td>$106.84 / bbl</td></tr><tr><td>Gold Rate (24K / 10g)</td><td>₹132,554</td></tr>
+                <tr><td>USD / INR Spot</td><td>₹95.81</td></tr><tr><td>Crude Oil (Brent)</td><td>$106.90 / bbl</td></tr><tr><td>Gold Rate (24K / 10g)</td><td>₹132,563</td></tr>
             </table>
         </div>
     </div>
 </div>
 
 <script>
-    // Yield Curve Chart
-    const ctxYield = document.getElementById('yieldCurveChart').getContext('2d');
-    new Chart(ctxYield, {
-        type: 'line',
-        data: {
-            labels: ['3M', '6M', '2Y', '5Y', '10Y'],
-            datasets: [
-                {
-                    label: 'INR Sovereign Yields',
-                    data: [5.39, 5.82, 6.28, 6.80, 7.10],
-                    borderColor: '#ff9933',
-                    backgroundColor: 'rgba(255, 153, 51, 0.1)',
-                    tension: 0.3,
-                    fill: true
-                },
-                {
-                    label: 'US Treasury Yields',
-                    data: [4.19, 4.31, 4.85, 4.99, 5.11],
-                    borderColor: '#003366',
-                    backgroundColor: 'rgba(0, 51, 102, 0.1)',
-                    tension: 0.3,
-                    fill: true
-                }
-            ]
+    // Yield Curves Comparison (Gradient Area Chart)
+    var yieldOptions = {
+        series: [
+            { name: 'INR Sovereign Yields', data: [5.39, 5.82, 6.28, 6.8, 7.1] },
+            { name: 'US Treasury Yields', data: [4.19, 4.31, 4.85, 4.99, 5.11] }
+        ],
+        chart: {
+            type: 'area',
+            height: 280,
+            toolbar: { show: false },
+            animations: { enabled: true, easing: 'easeinout', speed: 800 }
         },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                y: {
-                    ticks: { callback: value => value + '%' }
-                }
+        colors: ['#ff9933', '#003366'],
+        stroke: { curve: 'smooth', width: 3 },
+        fill: {
+            type: 'gradient',
+            gradient: {
+                shadeIntensity: 1,
+                opacityFrom: 0.45,
+                opacityTo: 0.05,
+                stops: [0, 90, 100]
+            }
+        },
+        markers: { size: 5, hover: { size: 7 } },
+        xaxis: {
+            categories: ['3M', '6M', '2Y', '5Y', '10Y'],
+            axisBorder: { show: false }
+        },
+        yaxis: {
+            labels: {
+                formatter: function (val) { return val ? val.toFixed(2) + '%' : ''; }
+            }
+        },
+        tooltip: {
+            y: {
+                formatter: function (val) { return val ? val.toFixed(2) + '%' : 'N/A'; }
             }
         }
-    });
+    };
+    var yieldChart = new ApexCharts(document.querySelector("#yieldCurveChart"), yieldOptions);
+    yieldChart.render();
 
-    // Swap Rates Bar Chart
-    const ctxSwap = document.getElementById('swapChart').getContext('2d');
-    new Chart(ctxSwap, {
-        type: 'bar',
-        data: {
-            labels: ['MIOIS 1M', 'MIOIS 3M', 'MIOIS 6M', 'MIOIS 1Y', 'MMIFOR 2Y', 'MMIFOR 3Y'],
-            datasets: [{
-                label: 'Swap Rate (%)',
-                data: [5.42, 5.53, 5.73, 6.10, 7.70, 7.72],
-                backgroundColor: [
-                    '#28a745', '#28a745', '#28a745', '#28a745',
-                    '#17a2b8', '#17a2b8'
-                ]
-            }]
+    // INR Swaps Bar Chart (Gradient Columns with Data Labels)
+    var swapOptions = {
+        series: [{
+            name: 'Swap Rate',
+            data: [5.42, 5.53, 5.73, 6.1, 7.7, 7.72]
+        }],
+        chart: {
+            type: 'bar',
+            height: 280,
+            toolbar: { show: false }
         },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false }
-            },
-            scales: {
-                y: {
-                    ticks: { callback: value => value + '%' }
-                }
+        colors: ['#0066cc'],
+        plotOptions: {
+            bar: {
+                borderRadius: 6,
+                columnWidth: '45%',
+                distributed: true,
+                dataLabels: { position: 'top' }
+            }
+        },
+        dataLabels: {
+            enabled: true,
+            formatter: function (val) { return val ? val.toFixed(2) + '%' : ''; },
+            offsetY: -20,
+            style: { fontSize: '12px', colors: ["#304758"] }
+        },
+        xaxis: {
+            categories: ['MIOIS 1M', 'MIOIS 3M', 'MIOIS 6M', 'MIOIS 1Y', 'MMIFOR 2Y', 'MMIFOR 3Y'],
+            axisBorder: { show: false }
+        },
+        yaxis: {
+            labels: {
+                formatter: function (val) { return val ? val.toFixed(2) + '%' : ''; }
+            }
+        },
+        legend: { show: false },
+        tooltip: {
+            y: {
+                formatter: function (val) { return val ? val.toFixed(2) + '%' : 'N/A'; }
             }
         }
-    });
+    };
+    var swapChart = new ApexCharts(document.querySelector("#swapChart"), swapOptions);
+    swapChart.render();
 </script>
 
 </body>
