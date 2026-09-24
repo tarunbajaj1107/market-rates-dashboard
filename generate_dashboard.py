@@ -335,16 +335,16 @@ def fetch_market_commodities_fx():
     return data
 
 
-# Helper to parse string values to floats safely for chart rendering
+# Helper to parse string values to floats safely
 def parse_val(v):
     if not v or v == 'N/A':
         return 'null'
     clean = re.sub(r'[^0-9.]', '', str(v))
-    return clean if clean else 'null'
+    return float(clean) if clean else 'null'
 
 
 # ---------------------------------------------------------------------------
-# HTML GENERATOR FUNCTION WITH VISUAL CHARTS
+# HTML GENERATOR FUNCTION WITH APEXCHARTS
 # ---------------------------------------------------------------------------
 
 def generate_html_dashboard():
@@ -357,7 +357,7 @@ def generate_html_dashboard():
     treasuries = fetch_us_treasuries()
     macro_data = fetch_market_commodities_fx()
 
-    # Dynamic Array Preparation for Charts
+    # Dynamic Array Preparation for ApexCharts
     inr_yield_vals = [
         parse_val(ccil_yields.get('INR 3M T-Bill')),
         parse_val(ccil_yields.get('INR 6M T-Bill')),
@@ -389,8 +389,8 @@ def generate_html_dashboard():
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Global & Domestic Market Rates Dashboard</title>
-    <!-- Include Chart.js via CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- ApexCharts CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
     <style>
         body {{
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -438,7 +438,7 @@ def generate_html_dashboard():
         }}
         .charts-section {{
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(480px, 1fr));
             gap: 20px;
             margin-bottom: 25px;
         }}
@@ -461,10 +461,8 @@ def generate_html_dashboard():
             padding-bottom: 8px;
             color: #2c3e50;
         }}
-        .chart-container {{
-            position: relative;
-            height: 250px;
-            width: 100%;
+        .chart-box {{
+            min-height: 280px;
         }}
         table {{
             width: 100%;
@@ -503,19 +501,15 @@ def generate_html_dashboard():
         </div>
     </div>
 
-    <!-- CHARTS SECTION -->
+    <!-- FANCY APEXCHARTS SECTION -->
     <div class="charts-section">
         <div class="card">
-            <h2>📈 Sovereign Yield Curves Comparison (%)</h2>
-            <div class="chart-container">
-                <canvas id="yieldCurveChart"></canvas>
-            </div>
+            <h2>📈 Sovereign Yield Curves Comparison</h2>
+            <div id="yieldCurveChart" class="chart-box"></div>
         </div>
         <div class="card">
-            <h2>📊 INR Swap Rates Overview (%)</h2>
-            <div class="chart-container">
-                <canvas id="swapChart"></canvas>
-            </div>
+            <h2>📊 INR Swap Rates Overview</h2>
+            <div id="swapChart" class="chart-box"></div>
         </div>
     </div>
 
@@ -561,70 +555,92 @@ def generate_html_dashboard():
 </div>
 
 <script>
-    // Yield Curve Chart
-    const ctxYield = document.getElementById('yieldCurveChart').getContext('2d');
-    new Chart(ctxYield, {{
-        type: 'line',
-        data: {{
-            labels: ['3M', '6M', '2Y', '5Y', '10Y'],
-            datasets: [
-                {{
-                    label: 'INR Sovereign Yields',
-                    data: [{", ".join(inr_yield_vals)}],
-                    borderColor: '#ff9933',
-                    backgroundColor: 'rgba(255, 153, 51, 0.1)',
-                    tension: 0.3,
-                    fill: true
-                }},
-                {{
-                    label: 'US Treasury Yields',
-                    data: [{", ".join(us_yield_vals)}],
-                    borderColor: '#003366',
-                    backgroundColor: 'rgba(0, 51, 102, 0.1)',
-                    tension: 0.3,
-                    fill: true
-                }}
-            ]
+    // Yield Curves Comparison (Gradient Area Chart)
+    var yieldOptions = {{
+        series: [
+            {{ name: 'INR Sovereign Yields', data: {inr_yield_vals} }},
+            {{ name: 'US Treasury Yields', data: {us_yield_vals} }}
+        ],
+        chart: {{
+            type: 'area',
+            height: 280,
+            toolbar: {{ show: false }},
+            animations: {{ enabled: true, easing: 'easeinout', speed: 800 }}
         }},
-        options: {{
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {{
-                y: {{
-                    ticks: {{ callback: value => value + '%' }}
-                }}
+        colors: ['#ff9933', '#003366'],
+        stroke: {{ curve: 'smooth', width: 3 }},
+        fill: {{
+            type: 'gradient',
+            gradient: {{
+                shadeIntensity: 1,
+                opacityFrom: 0.45,
+                opacityTo: 0.05,
+                stops: [0, 90, 100]
+            }}
+        }},
+        markers: {{ size: 5, hover: {{ size: 7 }} }},
+        xaxis: {{
+            categories: ['3M', '6M', '2Y', '5Y', '10Y'],
+            axisBorder: {{ show: false }}
+        }},
+        yaxis: {{
+            labels: {{
+                formatter: function (val) {{ return val ? val.toFixed(2) + '%' : ''; }}
+            }}
+        }},
+        tooltip: {{
+            y: {{
+                formatter: function (val) {{ return val ? val.toFixed(2) + '%' : 'N/A'; }}
             }}
         }}
-    }});
+    }};
+    var yieldChart = new ApexCharts(document.querySelector("#yieldCurveChart"), yieldOptions);
+    yieldChart.render();
 
-    // Swap Rates Bar Chart
-    const ctxSwap = document.getElementById('swapChart').getContext('2d');
-    new Chart(ctxSwap, {{
-        type: 'bar',
-        data: {{
-            labels: ['MIOIS 1M', 'MIOIS 3M', 'MIOIS 6M', 'MIOIS 1Y', 'MMIFOR 2Y', 'MMIFOR 3Y'],
-            datasets: [{{
-                label: 'Swap Rate (%)',
-                data: [{", ".join(inr_swap_vals)}],
-                backgroundColor: [
-                    '#28a745', '#28a745', '#28a745', '#28a745',
-                    '#17a2b8', '#17a2b8'
-                ]
-            }}]
+    // INR Swaps Bar Chart (Gradient Columns with Data Labels)
+    var swapOptions = {{
+        series: [{{
+            name: 'Swap Rate',
+            data: {inr_swap_vals}
+        }}],
+        chart: {{
+            type: 'bar',
+            height: 280,
+            toolbar: {{ show: false }}
         }},
-        options: {{
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {{
-                legend: {{ display: false }}
-            }},
-            scales: {{
-                y: {{
-                    ticks: {{ callback: value => value + '%' }}
-                }}
+        colors: ['#0066cc'],
+        plotOptions: {{
+            bar: {{
+                borderRadius: 6,
+                columnWidth: '45%',
+                distributed: true,
+                dataLabels: {{ position: 'top' }}
+            }}
+        }},
+        dataLabels: {{
+            enabled: true,
+            formatter: function (val) {{ return val ? val.toFixed(2) + '%' : ''; }},
+            offsetY: -20,
+            style: {{ fontSize: '12px', colors: ["#304758"] }}
+        }},
+        xaxis: {{
+            categories: ['MIOIS 1M', 'MIOIS 3M', 'MIOIS 6M', 'MIOIS 1Y', 'MMIFOR 2Y', 'MMIFOR 3Y'],
+            axisBorder: {{ show: false }}
+        }},
+        yaxis: {{
+            labels: {{
+                formatter: function (val) {{ return val ? val.toFixed(2) + '%' : ''; }}
+            }}
+        }},
+        legend: {{ show: false }},
+        tooltip: {{
+            y: {{
+                formatter: function (val) {{ return val ? val.toFixed(2) + '%' : 'N/A'; }}
             }}
         }}
-    }});
+    }};
+    var swapChart = new ApexCharts(document.querySelector("#swapChart"), swapOptions);
+    swapChart.render();
 </script>
 
 </body>
@@ -634,7 +650,7 @@ def generate_html_dashboard():
     with open("index.html", "w", encoding="utf-8") as f:
         f.write(html_content)
 
-    print("Dashboard index.html with visual charts generated successfully!")
+    print("Dashboard index.html with ApexCharts generated successfully!")
 
 
 if __name__ == "__main__":
