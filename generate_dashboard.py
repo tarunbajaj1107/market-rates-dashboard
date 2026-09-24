@@ -11,7 +11,7 @@ from playwright.sync_api import sync_playwright
 # ---------------------------------------------------------------------------
 GITHUB_USER = "tarunbajaj1107"
 GITHUB_REPO = "market-rates-dashboard"
-GITHUB_PAT = "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"
+GITHUB_PAT = "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"
 
 # ---------------------------------------------------------------------------
 # DATA SCRAPING FUNCTIONS
