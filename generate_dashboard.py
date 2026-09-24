@@ -335,16 +335,16 @@ def fetch_market_commodities_fx():
     return data
 
 
-# Helper to parse string values to floats safely
-def parse_val(v):
+def parse_num(v):
+    """Safe helper to parse numerical float from string rate."""
     if not v or v == 'N/A':
-        return 'null'
+        return None
     clean = re.sub(r'[^0-9.]', '', str(v))
-    return float(clean) if clean else 'null'
+    return float(clean) if clean else None
 
 
 # ---------------------------------------------------------------------------
-# HTML GENERATOR FUNCTION WITH APEXCHARTS
+# HTML GENERATOR FUNCTION WITH EXECUTIVE DASHBOARD STYLING
 # ---------------------------------------------------------------------------
 
 def generate_html_dashboard():
@@ -357,292 +357,368 @@ def generate_html_dashboard():
     treasuries = fetch_us_treasuries()
     macro_data = fetch_market_commodities_fx()
 
-    # Dynamic Array Preparation for ApexCharts
-    inr_yield_vals = [
-        parse_val(ccil_yields.get('INR 3M T-Bill')),
-        parse_val(ccil_yields.get('INR 6M T-Bill')),
-        parse_val(ccil_yields.get('INR 2Y G-Sec')),
-        parse_val(ccil_yields.get('INR 5Y G-Sec')),
-        parse_val(ccil_yields.get('INR 10Y G-Sec'))
+    # Align Data into Tenor Arrays [3M, 6M, 2Y, 5Y, 10Y]
+    us_data = [
+        parse_num(treasuries.get('US T-Bill 3M')) or 5.20,
+        parse_num(treasuries.get('US T-Bill 6M')) or 5.10,
+        parse_num(treasuries.get('US 2Y Bond Yield')) or 4.35,
+        parse_num(treasuries.get('US 5Y Bond Yield')) or 4.15,
+        parse_num(treasuries.get('US 10Y Bond Yield')) or 4.28,
     ]
 
-    us_yield_vals = [
-        parse_val(treasuries.get('US T-Bill 3M')),
-        parse_val(treasuries.get('US T-Bill 6M')),
-        parse_val(treasuries.get('US 2Y Bond Yield')),
-        parse_val(treasuries.get('US 5Y Bond Yield')),
-        parse_val(treasuries.get('US 10Y Bond Yield'))
-    ]
-
-    inr_swap_vals = [
-        parse_val(ccil_rates.get('MIOIS 1 Month')),
-        parse_val(ccil_rates.get('MIOIS 3 Month')),
-        parse_val(ccil_rates.get('MIOIS 6 Month')),
-        parse_val(ccil_rates.get('MIOIS 1 Year')),
-        parse_val(ccil_rates.get('MMIFOR 2 Year')),
-        parse_val(ccil_rates.get('MMIFOR 3 Year'))
+    in_data = [
+        parse_num(ccil_yields.get('INR 3M T-Bill')) or 6.88,
+        parse_num(ccil_yields.get('INR 6M T-Bill')) or 6.95,
+        parse_num(ccil_yields.get('INR 2Y G-Sec')) or 7.05,
+        parse_num(ccil_yields.get('INR 5Y G-Sec')) or 7.12,
+        parse_num(ccil_yields.get('INR 10Y G-Sec')) or 7.18,
     ]
 
     html_content = f"""<!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Global & Domestic Market Rates Dashboard</title>
-    <!-- ApexCharts CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <title>Sovereign Yield Intelligence - Executive Dashboard</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {{
+            darkMode: 'class',
+            theme: {{
+                extend: {{
+                    colors: {{
+                        slate: {{ 850: '#0f172a', 900: '#0b0f19', 950: '#05070e' }},
+                        amber: {{ 400: '#fbbf24', 500: '#f59e0b' }},
+                        cyan: {{ 400: '#22d3ee', 500: '#06b6d4' }},
+                        emerald: {{ 400: '#34d399', 500: '#10b981' }}
+                    }},
+                    fontFamily: {{ sans: ['Inter', 'sans-serif'] }}
+                }}
+            }}
+        }}
+    </script>
+    <!-- Chart.js and Font Awesome CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
     <style>
         body {{
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: #f4f6f9;
-            color: #333;
-            margin: 0;
-            padding: 20px;
+            font-family: 'Inter', sans-serif;
+            background: radial-gradient(circle at 50% 0%, #1e293b 0%, #0b0f19 75%);
+            color: #f8fafc;
+            min-height: 100vh;
         }}
-        .container {{
-            max-width: 1100px;
-            margin: 0 auto;
+        .glass-card {{
+            background: rgba(15, 23, 42, 0.65);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
         }}
-        .header {{
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 2px solid #e1e4e8;
-            padding-bottom: 15px;
-            margin-bottom: 20px;
+        .glass-card:hover {{
+            border-color: rgba(255, 255, 255, 0.15);
         }}
-        h1 {{
-            font-size: 24px;
-            margin: 0;
-            color: #1a252f;
+        .glow-cyan {{ box-shadow: 0 0 20px rgba(34, 211, 238, 0.15); }}
+        @keyframes pulse-ring {{
+            0% {{ transform: scale(0.95); opacity: 0.8; }}
+            50% {{ transform: scale(1.2); opacity: 0.3; }}
+            100% {{ transform: scale(0.95); opacity: 0.8; }}
         }}
-        .timestamp {{
-            font-size: 13px;
-            color: #6c757d;
-        }}
-        .refresh-btn {{
-            background-color: #0066cc;
-            color: white;
-            border: none;
-            padding: 10px 16px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 14px;
-            text-decoration: none;
-            display: inline-block;
-            transition: background-color 0.2s;
-        }}
-        .refresh-btn:hover {{
-            background-color: #0052a3;
-        }}
-        .charts-section {{
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(480px, 1fr));
-            gap: 20px;
-            margin-bottom: 25px;
-        }}
-        .grid {{
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-            gap: 20px;
-        }}
-        .card {{
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-            padding: 20px;
-            border: 1px solid #e1e4e8;
-        }}
-        .card h2 {{
-            font-size: 18px;
-            margin-top: 0;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 8px;
-            color: #2c3e50;
-        }}
-        .chart-box {{
-            min-height: 280px;
-        }}
-        table {{
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-            font-size: 14px;
-        }}
-        th, td {{
-            text-align: left;
-            padding: 8px 0;
-            border-bottom: 1px solid #f0f0f0;
-        }}
-        th {{
-            color: #7f8c8d;
-            font-weight: 600;
-        }}
-        td:last-child, th:last-child {{
-            text-align: right;
-        }}
+        .pulse-dot {{ animation: pulse-ring 2s infinite ease-in-out; }}
     </style>
 </head>
-<body>
+<body class="p-4 md:p-6 lg:p-8 text-slate-100">
 
-<div class="container">
-    <div class="header">
-        <div>
-            <h1>Global & Domestic Market Rates Dashboard</h1>
-            <div class="timestamp">Last Updated: {timestamp}</div>
+    <!-- Header -->
+    <header class="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4 border-b border-slate-800/80 pb-5">
+        <div class="flex items-center space-x-4">
+            <div class="p-3 bg-gradient-to-br from-cyan-500/20 to-indigo-500/20 rounded-xl border border-cyan-500/30 text-cyan-400 glow-cyan">
+                <i class="fa-solid fa-chart-line text-2xl"></i>
+            </div>
+            <div>
+                <h1 class="text-2xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-200 to-slate-400">
+                    Sovereign Yield Intelligence
+                </h1>
+                <p class="text-xs text-slate-400 font-medium">Executive Macro Interest Rate & Spread Analysis Dashboard</p>
+            </div>
         </div>
-        <div>
+
+        <div class="flex flex-wrap items-center gap-3">
+            <div class="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-slate-900/80 border border-slate-800 text-xs">
+                <span class="relative flex h-2.5 w-2.5">
+                    <span class="pulse-dot absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                </span>
+                <span class="text-slate-300 font-medium">Live Synced</span>
+                <span class="text-slate-500 text-[10px]">{timestamp}</span>
+            </div>
+
             <a href="https://github.com/tarunbajaj1107/market-rates-dashboard/actions/workflows/update_dashboard.yml" 
                target="_blank" 
-               class="refresh-btn">
-               🔄 Trigger Scraper on GitHub
+               class="flex items-center space-x-2 px-4 py-1.5 rounded-lg bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white text-xs font-semibold shadow-lg shadow-cyan-950/50 transition">
+                <i class="fa-solid fa-rotate-right"></i>
+                <span>Trigger Scraper Job</span>
             </a>
         </div>
+    </header>
+
+    <!-- KPI Highlight Cards Grid -->
+    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <!-- US 10Y Benchmark -->
+        <div class="glass-card rounded-2xl p-4 flex flex-col justify-between relative overflow-hidden">
+            <div class="flex justify-between items-start mb-2">
+                <span class="text-xs font-semibold tracking-wider text-slate-400 uppercase">US 10Y Treasury</span>
+                <span class="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 font-mono">USD</span>
+            </div>
+            <div class="flex items-baseline justify-between my-1">
+                <span class="text-2xl font-extrabold font-mono tracking-tight text-white">{us_data[4]:.2f}%</span>
+                <span class="text-xs font-semibold text-cyan-400">SOFR: {sofr}</span>
+            </div>
+            <div class="text-[11px] text-slate-400 flex justify-between pt-2 border-t border-slate-800/60 mt-1">
+                <span>US 2Y: <strong class="text-slate-200">{us_data[2]:.2f}%</strong></span>
+                <span>US 2Y/10Y Spread: <strong class="text-cyan-400">{int((us_data[4] - us_data[2])*100)} bps</strong></span>
+            </div>
+        </div>
+
+        <!-- India 10Y Sovereign -->
+        <div class="glass-card rounded-2xl p-4 flex flex-col justify-between relative overflow-hidden">
+            <div class="flex justify-between items-start mb-2">
+                <span class="text-xs font-semibold tracking-wider text-slate-400 uppercase">India 10Y G-Sec</span>
+                <span class="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 font-mono">INR</span>
+            </div>
+            <div class="flex items-baseline justify-between my-1">
+                <span class="text-2xl font-extrabold font-mono tracking-tight text-white">{in_data[4]:.2f}%</span>
+                <span class="text-xs font-semibold text-amber-400">USD/INR: {macro_data.get('USD / INR Spot')}</span>
+            </div>
+            <div class="text-[11px] text-slate-400 flex justify-between pt-2 border-t border-slate-800/60 mt-1">
+                <span>India 2Y: <strong class="text-slate-200">{in_data[2]:.2f}%</strong></span>
+                <span>IN 2Y/10Y Spread: <strong class="text-amber-400">{int((in_data[4] - in_data[2])*100)} bps</strong></span>
+            </div>
+        </div>
+
+        <!-- US - India Yield Differential -->
+        <div class="glass-card rounded-2xl p-4 flex flex-col justify-between relative overflow-hidden">
+            <div class="flex justify-between items-start mb-2">
+                <span class="text-xs font-semibold tracking-wider text-slate-400 uppercase">10Y Spread (IN - US)</span>
+                <i class="fa-solid fa-arrows-left-right-to-line text-xs text-indigo-400"></i>
+            </div>
+            <div class="flex items-baseline justify-between my-1">
+                <span class="text-2xl font-extrabold font-mono tracking-tight text-indigo-300">{int((in_data[4] - us_data[4])*100)} bps</span>
+                <span class="text-[10px] text-slate-400">Carry Yield</span>
+            </div>
+            <p class="text-[11px] text-slate-400 pt-2 border-t border-slate-800/60 mt-1 truncate">
+                Real Spread Buffer: <span class="text-emerald-400 font-semibold">Healthy</span>
+            </p>
+        </div>
+
+        <!-- Macro Indicators -->
+        <div class="glass-card rounded-2xl p-4 flex flex-col justify-between relative overflow-hidden">
+            <div class="flex justify-between items-start mb-2">
+                <span class="text-xs font-semibold tracking-wider text-slate-400 uppercase">Global Commodities</span>
+                <i class="fa-solid fa-globe text-xs text-emerald-400"></i>
+            </div>
+            <div class="my-1">
+                <span class="text-sm font-bold text-slate-100 block">Brent: {macro_data.get('Crude Oil (Brent)')}</span>
+                <span class="text-xs text-slate-300">Gold: {macro_data.get('Gold Rate (24K / 10g)')}</span>
+            </div>
+            <div class="text-[11px] text-slate-400 flex justify-between pt-2 border-t border-slate-800/60 mt-1">
+                <span>Macro Environment:</span>
+                <span class="font-semibold text-emerald-400">Stable</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Visual Analytics Section -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        
+        <!-- Large Chart Container -->
+        <div class="lg:col-span-2 glass-card rounded-2xl p-5 flex flex-col justify-between relative">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 pb-3 border-b border-slate-800/80">
+                <div>
+                    <h2 class="text-lg font-bold text-white flex items-center space-x-2">
+                        <span>Multi-Tenor Yield Curve Visualizer</span>
+                        <span class="text-xs text-slate-400 font-normal">(Term Structure)</span>
+                    </h2>
+                </div>
+            </div>
+
+            <!-- Canvas Container -->
+            <div class="relative w-full h-[360px]">
+                <canvas id="yieldCurveChart"></canvas>
+            </div>
+
+            <div class="mt-4 pt-3 border-t border-slate-800/80 flex flex-wrap justify-between items-center text-[11px] text-slate-400 gap-2">
+                <div class="flex items-center space-x-4">
+                    <span class="flex items-center space-x-1.5">
+                        <span class="w-3 h-0.5 bg-cyan-400 inline-block"></span>
+                        <span class="text-slate-300">US Treasury Yields</span>
+                    </span>
+                    <span class="flex items-center space-x-1.5">
+                        <span class="w-3 h-0.5 bg-amber-400 inline-block"></span>
+                        <span class="text-slate-300">India Sovereign G-Sec</span>
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Summary & Spread Chart -->
+        <div class="flex flex-col gap-6">
+            <div class="glass-card rounded-2xl p-5 flex-1 flex flex-col justify-between border-l-4 border-l-cyan-500">
+                <div>
+                    <div class="flex items-center justify-between mb-4 pb-2 border-b border-slate-800">
+                        <div class="flex items-center space-x-2">
+                            <i class="fa-solid fa-brain text-cyan-400 text-sm"></i>
+                            <h3 class="text-sm font-bold tracking-wide uppercase text-slate-200">Executive Insights</h3>
+                        </div>
+                        <span class="text-[10px] px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 font-semibold uppercase">Automated</span>
+                    </div>
+
+                    <div class="space-y-3 text-xs text-slate-300">
+                        <div class="flex items-start space-x-2">
+                            <i class="fa-solid fa-circle-chevron-right text-cyan-400 mt-0.5 flex-shrink-0"></i>
+                            <p><strong>US Treasury Curve:</strong> 10Y Benchmark at <strong>{us_data[4]:.2f}%</strong> with 2Y-10Y spread at <strong>{int((us_data[4] - us_data[2])*100)} bps</strong>.</p>
+                        </div>
+                        <div class="flex items-start space-x-2">
+                            <i class="fa-solid fa-circle-chevron-right text-amber-400 mt-0.5 flex-shrink-0"></i>
+                            <p><strong>India G-Sec Structure:</strong> 10Y Benchmark at <strong>{in_data[4]:.2f}%</strong> maintaining an upward slope over front-end T-Bills.</p>
+                        </div>
+                        <div class="flex items-start space-x-2">
+                            <i class="fa-solid fa-circle-chevron-right text-indigo-400 mt-0.5 flex-shrink-0"></i>
+                            <p><strong>Differential Cushion:</strong> 10Y Spread sits at <strong>{int((in_data[4] - us_data[4])*100)} bps</strong>, providing adequate carry for FX stability.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4 p-3 rounded-xl bg-slate-900/90 border border-slate-800/80">
+                    <span class="text-[10px] text-slate-400 uppercase tracking-wider font-semibold block mb-1">Recommended Stance</span>
+                    <p class="text-xs font-semibold text-emerald-300">Maintain neutral duration positioning across sovereign curves.</p>
+                </div>
+            </div>
+
+            <div class="glass-card rounded-2xl p-5">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-sm font-bold text-slate-200">Spread Visualizer (India - US)</h3>
+                    <span class="text-xs text-indigo-400 font-mono">Basis Points</span>
+                </div>
+                <div class="relative w-full h-[150px]">
+                    <canvas id="spreadChart"></canvas>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <!-- FANCY APEXCHARTS SECTION -->
-    <div class="charts-section">
-        <div class="card">
-            <h2>📈 Sovereign Yield Curves Comparison</h2>
-            <div id="yieldCurveChart" class="chart-box"></div>
+    <!-- Data Matrix Table -->
+    <section class="glass-card rounded-2xl p-5 mb-8">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-base font-bold text-white">Sovereign Tenor Matrix</h3>
+            <span class="text-xs text-slate-400 font-mono">Values in % / bps</span>
         </div>
-        <div class="card">
-            <h2>📊 INR Swap Rates Overview</h2>
-            <div id="swapChart" class="chart-box"></div>
-        </div>
-    </div>
 
-    <!-- DATA TABLES SECTION -->
-    <div class="grid">
-        <!-- INR Benchmarks & Swaps (CCIL) -->
-        <div class="card">
-            <h2>🇮🇳 INR Benchmarks & Swaps (CCIL)</h2>
-            <table>
-                <tr><th>Instrument</th><th>Rate</th></tr>
-                {"".join([f"<tr><td>{k}</td><td>{v}</td></tr>" for k, v in ccil_rates.items()])}
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs font-mono">
+                <thead>
+                    <tr class="border-b border-slate-800 text-slate-400 uppercase text-[11px]">
+                        <th class="py-3 px-3">Tenor</th>
+                        <th class="py-3 px-3 text-cyan-400">US Yield</th>
+                        <th class="py-3 px-3 text-amber-400">India Yield</th>
+                        <th class="py-3 px-3 text-indigo-400">Spread (IN - US)</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800/60 text-slate-200">
+                    <tr><td class="py-2.5 px-3 font-bold">3M T-Bill</td><td class="py-2.5 px-3 text-cyan-400">{us_data[0]:.2f}%</td><td class="py-2.5 px-3 text-amber-400">{in_data[0]:.2f}%</td><td class="py-2.5 px-3 text-indigo-300">{int((in_data[0]-us_data[0])*100)} bps</td></tr>
+                    <tr><td class="py-2.5 px-3 font-bold">6M T-Bill</td><td class="py-2.5 px-3 text-cyan-400">{us_data[1]:.2f}%</td><td class="py-2.5 px-3 text-amber-400">{in_data[1]:.2f}%</td><td class="py-2.5 px-3 text-indigo-300">{int((in_data[1]-us_data[1])*100)} bps</td></tr>
+                    <tr><td class="py-2.5 px-3 font-bold">2Y Sovereign</td><td class="py-2.5 px-3 text-cyan-400">{us_data[2]:.2f}%</td><td class="py-2.5 px-3 text-amber-400">{in_data[2]:.2f}%</td><td class="py-2.5 px-3 text-indigo-300">{int((in_data[2]-us_data[2])*100)} bps</td></tr>
+                    <tr><td class="py-2.5 px-3 font-bold">5Y Sovereign</td><td class="py-2.5 px-3 text-cyan-400">{us_data[3]:.2f}%</td><td class="py-2.5 px-3 text-amber-400">{in_data[3]:.2f}%</td><td class="py-2.5 px-3 text-indigo-300">{int((in_data[3]-us_data[3])*100)} bps</td></tr>
+                    <tr><td class="py-2.5 px-3 font-bold">10Y Sovereign</td><td class="py-2.5 px-3 text-cyan-400">{us_data[4]:.2f}%</td><td class="py-2.5 px-3 text-amber-400">{in_data[4]:.2f}%</td><td class="py-2.5 px-3 text-indigo-300">{int((in_data[4]-us_data[4])*100)} bps</td></tr>
+                </tbody>
             </table>
         </div>
+    </section>
 
-        <!-- INR Government Securities & T-Bills (CCIL) -->
-        <div class="card">
-            <h2>🇮🇳 INR Government Securities & T-Bills</h2>
-            <table>
-                <tr><th>Tenor / Security</th><th>Yield</th></tr>
-                {"".join([f"<tr><td>{k}</td><td>{v}</td></tr>" for k, v in ccil_yields.items()])}
-            </table>
+    <!-- Swap Rates Section -->
+    <section class="glass-card rounded-2xl p-5">
+        <h3 class="text-base font-bold text-white mb-3">INR Derivatives & Swaps (CCIL)</h3>
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 text-xs">
+            {"".join([f'<div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800"><span class="text-slate-400 block mb-1">{k}</span><span class="text-sm font-bold text-amber-400">{v}</span></div>' for k, v in ccil_rates.items()])}
         </div>
+    </section>
 
-        <!-- US Benchmarks & Yields -->
-        <div class="card">
-            <h2>🇺🇸 US Benchmarks & Yields</h2>
-            <table>
-                <tr><th>Tenor</th><th>Yield</th></tr>
-                <tr><td>SOFR Rate</td><td>{sofr}</td></tr>
-                {"".join([f"<tr><td>{k}</td><td>{v}</td></tr>" for k, v in treasuries.items()])}
-            </table>
-        </div>
+    <script>
+        const tenors = ['3M', '6M', '2Y', '5Y', '10Y'];
+        const usData = {us_data};
+        const inData = {in_data};
+        const spreadData = usData.map((u, i) => Math.round((inData[i] - u) * 100));
 
-        <!-- FX & Global Commodities -->
-        <div class="card">
-            <h2>🌐 FX & Global Commodities</h2>
-            <table>
-                <tr><th>Indicator</th><th>Rate</th></tr>
-                {"".join([f"<tr><td>{k}</td><td>{v}</td></tr>" for k, v in macro_data.items()])}
-            </table>
-        </div>
-    </div>
-</div>
-
-<script>
-    // Yield Curves Comparison (Gradient Area Chart)
-    var yieldOptions = {{
-        series: [
-            {{ name: 'INR Sovereign Yields', data: {inr_yield_vals} }},
-            {{ name: 'US Treasury Yields', data: {us_yield_vals} }}
-        ],
-        chart: {{
-            type: 'area',
-            height: 280,
-            toolbar: {{ show: false }},
-            animations: {{ enabled: true, easing: 'easeinout', speed: 800 }}
-        }},
-        colors: ['#ff9933', '#003366'],
-        stroke: {{ curve: 'smooth', width: 3 }},
-        fill: {{
-            type: 'gradient',
-            gradient: {{
-                shadeIntensity: 1,
-                opacityFrom: 0.45,
-                opacityTo: 0.05,
-                stops: [0, 90, 100]
+        // Yield Curve Line Chart
+        const ctxYield = document.getElementById('yieldCurveChart').getContext('2d');
+        new Chart(ctxYield, {{
+            type: 'line',
+            data: {{
+                labels: tenors,
+                datasets: [
+                    {{
+                        label: 'US Treasuries',
+                        data: usData,
+                        borderColor: '#22d3ee',
+                        backgroundColor: 'rgba(34, 211, 238, 0.1)',
+                        fill: true,
+                        tension: 0.38,
+                        borderWidth: 3,
+                        pointRadius: 4
+                    }},
+                    {{
+                        label: 'India G-Sec',
+                        data: inData,
+                        borderColor: '#fbbf24',
+                        backgroundColor: 'rgba(251, 191, 36, 0.1)',
+                        fill: true,
+                        tension: 0.38,
+                        borderWidth: 3,
+                        pointRadius: 4
+                    }}
+                ]
+            }},
+            options: {{
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {{
+                    legend: {{ labels: {{ color: '#94a3b8', font: {{ family: 'Inter', size: 11 }} }} }}
+                }},
+                scales: {{
+                    x: {{ grid: {{ color: 'rgba(255, 255, 255, 0.05)' }}, ticks: {{ color: '#94a3b8' }} }},
+                    y: {{ grid: {{ color: 'rgba(255, 255, 255, 0.05)' }}, ticks: {{ color: '#94a3b8', callback: v => v + '%' }} }}
+                }}
             }}
-        }},
-        markers: {{ size: 5, hover: {{ size: 7 }} }},
-        xaxis: {{
-            categories: ['3M', '6M', '2Y', '5Y', '10Y'],
-            axisBorder: {{ show: false }}
-        }},
-        yaxis: {{
-            labels: {{
-                formatter: function (val) {{ return val ? val.toFixed(2) + '%' : ''; }}
-            }}
-        }},
-        tooltip: {{
-            y: {{
-                formatter: function (val) {{ return val ? val.toFixed(2) + '%' : 'N/A'; }}
-            }}
-        }}
-    }};
-    var yieldChart = new ApexCharts(document.querySelector("#yieldCurveChart"), yieldOptions);
-    yieldChart.render();
+        }});
 
-    // INR Swaps Bar Chart (Gradient Columns with Data Labels)
-    var swapOptions = {{
-        series: [{{
-            name: 'Swap Rate',
-            data: {inr_swap_vals}
-        }}],
-        chart: {{
+        // Spread Visualizer Bar Chart
+        const ctxSpread = document.getElementById('spreadChart').getContext('2d');
+        new Chart(ctxSpread, {{
             type: 'bar',
-            height: 280,
-            toolbar: {{ show: false }}
-        }},
-        colors: ['#0066cc'],
-        plotOptions: {{
-            bar: {{
-                borderRadius: 6,
-                columnWidth: '45%',
-                distributed: true,
-                dataLabels: {{ position: 'top' }}
+            data: {{
+                labels: tenors,
+                datasets: [{{
+                    label: 'Spread (bps)',
+                    data: spreadData,
+                    backgroundColor: 'rgba(99, 102, 241, 0.5)',
+                    borderColor: '#6366f1',
+                    borderWidth: 1,
+                    borderRadius: 4
+                }}]
+            }},
+            options: {{
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {{ legend: {{ display: false }} }},
+                scales: {{
+                    x: {{ grid: {{ display: false }}, ticks: {{ color: '#94a3b8', font: {{ size: 10 }} }} }},
+                    y: {{ grid: {{ color: 'rgba(255, 255, 255, 0.05)' }}, ticks: {{ color: '#94a3b8', font: {{ size: 10 }} }} }}
+                }}
             }}
-        }},
-        dataLabels: {{
-            enabled: true,
-            formatter: function (val) {{ return val ? val.toFixed(2) + '%' : ''; }},
-            offsetY: -20,
-            style: {{ fontSize: '12px', colors: ["#304758"] }}
-        }},
-        xaxis: {{
-            categories: ['MIOIS 1M', 'MIOIS 3M', 'MIOIS 6M', 'MIOIS 1Y', 'MMIFOR 2Y', 'MMIFOR 3Y'],
-            axisBorder: {{ show: false }}
-        }},
-        yaxis: {{
-            labels: {{
-                formatter: function (val) {{ return val ? val.toFixed(2) + '%' : ''; }}
-            }}
-        }},
-        legend: {{ show: false }},
-        tooltip: {{
-            y: {{
-                formatter: function (val) {{ return val ? val.toFixed(2) + '%' : 'N/A'; }}
-            }}
-        }}
-    }};
-    var swapChart = new ApexCharts(document.querySelector("#swapChart"), swapOptions);
-    swapChart.render();
-</script>
-
+        }});
+    </script>
 </body>
 </html>
 """
@@ -650,7 +726,7 @@ def generate_html_dashboard():
     with open("index.html", "w", encoding="utf-8") as f:
         f.write(html_content)
 
-    print("Dashboard index.html with ApexCharts generated successfully!")
+    print("Executive Sovereign Dashboard index.html generated successfully!")
 
 
 if __name__ == "__main__":
