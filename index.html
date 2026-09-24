@@ -102,7 +102,7 @@
     <div class="header">
         <div>
             <h1>Global & Domestic Market Rates Dashboard</h1>
-            <div class="timestamp">Last Updated: 2026-09-24 18:05:17 UTC</div>
+            <div class="timestamp">Last Updated: 2026-09-24 18:09:54 UTC</div>
         </div>
         <div>
             <button id="refreshBtn" class="refresh-btn" onclick="triggerScraper()">🔄 Refresh Live Rates</button>
@@ -136,7 +136,7 @@
             <h2>US Treasury Yields</h2>
             <table>
                 <tr><th>Tenor</th><th>Yield</th></tr>
-                <tr><td colspan='2'>No data available</td></tr>
+                <tr><td>1 Month</td><td>3.99%</td></tr><tr><td>3 Month</td><td>4.19%</td></tr><tr><td>6 Month</td><td>4.31%</td></tr><tr><td>1 Year</td><td>4.49%</td></tr><tr><td>2 Year</td><td>4.85%</td></tr><tr><td>5 Year</td><td>4.99%</td></tr><tr><td>10 Year</td><td>5.11%</td></tr><tr><td>30 Year</td><td>5.40%</td></tr>
             </table>
         </div>
 
@@ -165,9 +165,9 @@ async function triggerScraper() {
     const btn = document.getElementById('refreshBtn');
     const msg = document.getElementById('statusMsg');
     
-    const GITHUB_USER = 'tarunbajaj1107';
+    const GITHUB_USER = 'YOUR_ACTUAL_GITHUB_USERNAME';
     const GITHUB_REPO = 'market-rates-dashboard';
-    const GITHUB_PAT = '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'; 
+    const GITHUB_PAT = 'github_pat_11A...'; 
 
     btn.disabled = true;
     msg.style.color = '#0066cc';
