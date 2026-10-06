@@ -76,7 +76,7 @@
                     <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
                 </span>
                 <span class="text-slate-300 font-medium">Live Synced</span>
-                <span class="text-slate-500 text-[10px]">2026-10-06 09:31:01 UTC</span>
+                <span class="text-slate-500 text-[10px]">2026-10-06 16:20:45 UTC</span>
             </div>
 
             <a href="https://github.com/tarunbajaj1107/market-rates-dashboard/actions/workflows/update_dashboard.yml" 
@@ -98,7 +98,7 @@
             </div>
             <div class="flex items-baseline justify-between my-1">
                 <span class="text-2xl font-extrabold font-mono tracking-tight text-white">5.31%</span>
-                <span class="text-xs font-semibold text-cyan-400">SOFR: 3.88%</span>
+                <span class="text-xs font-semibold text-cyan-400">SOFR: 3.89%</span>
             </div>
             <div class="text-[11px] text-slate-400 flex justify-between pt-2 border-t border-slate-800/60 mt-1">
                 <span>US 2Y: <strong class="text-slate-200">4.84%</strong></span>
@@ -117,8 +117,8 @@
                 <span class="text-xs font-semibold text-amber-400">USD/INR: ₹96.38</span>
             </div>
             <div class="text-[11px] text-slate-400 flex justify-between pt-2 border-t border-slate-800/60 mt-1">
-                <span>India 2Y: <strong class="text-slate-200">6.59%</strong></span>
-                <span>IN 2Y/10Y Spread: <strong class="text-amber-400">62 bps</strong></span>
+                <span>India 2Y: <strong class="text-slate-200">6.60%</strong></span>
+                <span>IN 2Y/10Y Spread: <strong class="text-amber-400">61 bps</strong></span>
             </div>
         </div>
 
@@ -144,8 +144,8 @@
                 <i class="fa-solid fa-globe text-xs text-emerald-400"></i>
             </div>
             <div class="my-1">
-                <span class="text-sm font-bold text-slate-100 block">Brent: $98.57 / bbl</span>
-                <span class="text-xs text-slate-300">Gold: ₹129,664</span>
+                <span class="text-sm font-bold text-slate-100 block">Brent: $99.69 / bbl</span>
+                <span class="text-xs text-slate-300">Gold: ₹129,866</span>
             </div>
             <div class="text-[11px] text-slate-400 flex justify-between pt-2 border-t border-slate-800/60 mt-1">
                 <span>Macro Environment:</span>
@@ -253,7 +253,7 @@
                 <tbody class="divide-y divide-slate-800/60 text-slate-200">
                     <tr><td class="py-2.5 px-3 font-bold">3M T-Bill</td><td class="py-2.5 px-3 text-cyan-400">4.22%</td><td class="py-2.5 px-3 text-amber-400">5.52%</td><td class="py-2.5 px-3 text-indigo-300">129 bps</td></tr>
                     <tr><td class="py-2.5 px-3 font-bold">6M T-Bill</td><td class="py-2.5 px-3 text-cyan-400">4.30%</td><td class="py-2.5 px-3 text-amber-400">5.96%</td><td class="py-2.5 px-3 text-indigo-300">166 bps</td></tr>
-                    <tr><td class="py-2.5 px-3 font-bold">2Y Sovereign</td><td class="py-2.5 px-3 text-cyan-400">4.84%</td><td class="py-2.5 px-3 text-amber-400">6.59%</td><td class="py-2.5 px-3 text-indigo-300">175 bps</td></tr>
+                    <tr><td class="py-2.5 px-3 font-bold">2Y Sovereign</td><td class="py-2.5 px-3 text-cyan-400">4.84%</td><td class="py-2.5 px-3 text-amber-400">6.60%</td><td class="py-2.5 px-3 text-indigo-300">175 bps</td></tr>
                     <tr><td class="py-2.5 px-3 font-bold">5Y Sovereign</td><td class="py-2.5 px-3 text-cyan-400">5.06%</td><td class="py-2.5 px-3 text-amber-400">6.95%</td><td class="py-2.5 px-3 text-indigo-300">189 bps</td></tr>
                     <tr><td class="py-2.5 px-3 font-bold">10Y Sovereign</td><td class="py-2.5 px-3 text-cyan-400">5.31%</td><td class="py-2.5 px-3 text-amber-400">7.21%</td><td class="py-2.5 px-3 text-indigo-300">190 bps</td></tr>
                 </tbody>
@@ -272,7 +272,7 @@
     <script>
         const tenors = ['3M', '6M', '2Y', '5Y', '10Y'];
         const usData = [4.22, 4.3, 4.84, 5.06, 5.31];
-        const inData = [5.52, 5.96, 6.59, 6.95, 7.21];
+        const inData = [5.52, 5.96, 6.6, 6.95, 7.21];
         const spreadData = usData.map((u, i) => Math.round((inData[i] - u) * 100));
 
         // Yield Curve Line Chart
