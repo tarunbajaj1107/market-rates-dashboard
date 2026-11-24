@@ -327,7 +327,7 @@ def fetch_market_commodities_fx():
                 'regularMarketPrice'
             ]
             usd_inr = float(data['USD / INR Spot'].replace('₹', ''))
-            gold_inr_10g = (float(gold_oz_usd) / 31.1034768) * 10 * usd_inr
+            gold_inr_10g = (float(gold_oz_usd) / 31.1034768) * 10 * 1.17 * usd_inr
             data['Gold Rate (24K / 10g)'] = f'₹{int(gold_inr_10g):,}'
     except Exception:
         pass
